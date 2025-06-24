@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load form_filters %}
+
+{% block title %}My Profile - LawFirm CMS{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="mb-0">My Profile</h2>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_name">Full Name *</label>
+                                {{ form.name|add_class:'form-control' }}
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.name.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_email">Email *</label>
+                                {{ form.email|add_class:'form-control' }}
+                                {% if form.email.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.email.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_phone">Phone</label>
+                                {{ form.phone|add_class:'form-control' }}
+                                {% if form.phone.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.phone.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="id_date_of_birth">Date of Birth</label>
+                                {{ form.date_of_birth|add_class:'form-control' }}
+                                {% if form.date_of_birth.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.date_of_birth.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-group">
+                            <label for="id_address">Address</label>
+                            {{ form.address|add_class:'form-control' }}
+                            {% if form.address.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.address.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+
+                <hr class="my-4">
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">Account Security</h5>
+                        <p class="text-muted mb-0">Change your password or manage account security</p>
+                    </div>
+                    <a href="{% url 'password_change' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-key me-1"></i> Change Password
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .invalid-feedback {
+        display: block;
+    }
+    /* Add red asterisk for required fields */
+    label.required:after {
+        content: " *";
+        color: #dc3545;
+    }
+</style>
+
+<script>
+// Client-side form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        // Add date picker
+        if (document.getElementById('id_date_of_birth')) {
+            document.getElementById('id_date_of_birth').type = 'date';
+        }
+        
+        // Add required class to labels
+        var requiredInputs = document.querySelectorAll('input[required], select[required], textarea[required]');
+        requiredInputs.forEach(function(input) {
+            var label = document.querySelector('label[for="' + input.id + '"]');
+            if (label) {
+                label.classList.add('required');
+            }
+        });
+    }, false);
+})();
+</script>
+{% endblock %}

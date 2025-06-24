@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load form_filters %}
+
+{% block title %}Client Details{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="card-title mb-0">{{ client.name }}</h2>
+        {% if user.is_superuser or user|has_group:'Admin' or user|has_group:'Lawyer' %}
+        <a href="{% url 'client_update' client.pk %}" class="btn btn-secondary">Edit Client</a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <p class="card-text"><strong>Email:</strong> {{ client.email }}</p>
+        <p class="card-text"><strong>Phone:</strong> {{ client.phone }}</p>
+        
+        <hr>
+
+        <h4>Associated Cases</h4>
+        {% if cases %}
+            <div class="list-group">
+                {% for case in cases %}
+                    <a href="{% url 'case_detail' case.pk %}" class="list-group-item list-group-item-action">
+                        {{ case.title }} ({{ case.get_status_display }})
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">No cases found for this client.</p>
+        {% endif %}
+    </div>
+    <div class="card-footer text-muted">
+        Client Since: {{ client.created_at|date:"F d, Y" }}
+    </div>
+</div>
+{% endblock %}
