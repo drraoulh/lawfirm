@@ -6,6 +6,7 @@ urlpatterns = [
     # Authentication URLs
     path('register/', views.register, name='register'),
     path('profile/', views.ClientProfileView.as_view(), name='profile'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     
     # Application URLs
     path('', views.landing_page, name='landing_page'),

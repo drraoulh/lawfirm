@@ -21,10 +21,6 @@ class VisitorForm(forms.ModelForm):
         }
 
 class ClientRegistrationForm(UserCreationForm):
-    """
-    Form for registering a new client account.
-    Creates both a User and a linked Client profile.
-    """
     name = forms.CharField(
         max_length=255,
         required=True,
@@ -33,13 +29,8 @@ class ClientRegistrationForm(UserCreationForm):
             'class': 'form-control',
             'placeholder': 'John Doe',
             'autofocus': 'autofocus'
-        }),
-        error_messages={
-            'required': 'Please enter your full name.',
-            'max_length': 'Name is too long (max 255 characters).'
-        }
+        })
     )
-    
     email = forms.EmailField(
         required=True,
         help_text='A valid email address',
@@ -47,85 +38,42 @@ class ClientRegistrationForm(UserCreationForm):
             'class': 'form-control',
             'placeholder': 'your.email@example.com',
             'autocomplete': 'email'
-        }),
-        error_messages={
-            'required': 'Please enter your email address.',
-            'invalid': 'Please enter a valid email address.'
-        }
+        })
     )
-    
     phone = forms.CharField(
         max_length=20,
-        required=False,
-        help_text='Contact phone number (optional)',
+        required=True,
+        help_text='Your phone number',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': '+1 (555) 123-4567'
-        }),
-        error_messages={
-            'max_length': 'Phone number is too long.'
-        }
-    )
-    
-    address = forms.CharField(
-        required=False,
-        help_text='Your mailing address (optional)',
-        widget=forms.Textarea(attrs={
-            'class': 'form-control',
-            'rows': 3,
-            'placeholder': '123 Main St, City, State, ZIP'
         })
     )
-    
-    date_of_birth = forms.DateField(
-        required=False,
-        help_text='Date of birth (YYYY-MM-DD)',
-        widget=forms.DateInput(attrs={
-            'type': 'date',
-            'class': 'form-control',
-            'max': str(timezone.now().date() - timezone.timedelta(days=365*18))  # At least 18 years old
-        }),
-        error_messages={
-            'invalid': 'Please enter a valid date (YYYY-MM-DD).'
-        }
-    )
-    
-    username = forms.RegexField(
+    username = forms.CharField(
         max_length=150,
-        regex=r'^[\w.@+-]+$',
+        required=True,
         help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'johndoe',
             'autocomplete': 'username',
-            'pattern': '[\w.@+-]+',
-            'title': 'Enter a valid username. Letters, digits and @/./+/-/_ only.'
-        }),
-        error_messages={
-            'required': 'Please choose a username.',
-            'max_length': 'Username is too long (max 150 characters).',
-            'invalid': 'Enter a valid username. Only letters, digits and @/./+/-/_ characters are allowed.',
-        },
+        })
     )
-    
-    # Customize password fields
     password1 = forms.CharField(
         label='Password',
         strip=False,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
             'autocomplete': 'new-password',
-            'placeholder': 'Create a strong password'
-        }),
-        help_text=password_validators_help_text_html(),
+            'placeholder': 'Create a password'
+        })
     )
-    
     password2 = forms.CharField(
         label='Password confirmation',
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
             'autocomplete': 'new-password',
-            'placeholder': 'Enter the same password as before'
+            'placeholder': 'Enter the same password again'
         }),
         strip=False,
         help_text='Enter the same password as before, for verification.',
@@ -133,112 +81,38 @@ class ClientRegistrationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'name', 'phone', 'address', 'date_of_birth', 'password1', 'password2')
-        error_messages = {
-            'username': {
-                'unique': 'A user with that username already exists.'
-            },
-            'email': {
-                'unique': 'A user with that email already exists.'
-            }
-        }
+        fields = ('username', 'email', 'name', 'phone', 'password1', 'password2')
 
     def clean_username(self):
         username = self.cleaned_data.get('username').strip()
-        if not username:
-            raise forms.ValidationError('Please enter a username.')
-            
-        # Check for disallowed characters
-        allowed_chars = r'^[\w.@+-]+$'
-        if not re.match(allowed_chars, username):
-            raise forms.ValidationError(
-                'Username can only contain letters, digits and @/./+/-/_ characters.'
-            )
-            
-        # Check for uniqueness (case-insensitive)
         if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError('This username is already taken.')
-            
         return username
 
     def clean_email(self):
         email = self.cleaned_data.get('email', '').lower().strip()
-        if not email:
-            raise forms.ValidationError('Please enter your email address.')
-            
-        # Check for valid email format
-        try:
-            validate_email(email)
-        except ValidationError:
-            raise forms.ValidationError('Please enter a valid email address.')
-        
-        # Check for uniqueness (case-insensitive)
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError('This email is already registered.')
-            
         return email
-        
-    def clean_name(self):
-        name = self.cleaned_data.get('name', '').strip()
-        if not name:
-            raise forms.ValidationError('Please enter your full name.')
-            
-        # Clean up name formatting
-        name = ' '.join(part.capitalize() for part in name.split())
-        return name
-        
-    def clean(self):
-        cleaned_data = super().clean()
-        
-        # Ensure email and username don't match
-        email = cleaned_data.get('email', '').lower()
-        username = cleaned_data.get('username', '').lower()
-        
-        if email and username and email == username:
-            self.add_error('username', 'Username cannot be the same as your email address.')
-            
-        # Validate date of birth if provided
-        date_of_birth = cleaned_data.get('date_of_birth')
-        if date_of_birth:
-            today = timezone.now().date()
-            age = today.year - date_of_birth.year - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
-            if age < 18:
-                self.add_error('date_of_birth', 'You must be at least 18 years old to register.')
-                
-        return cleaned_data
-        
+
     def save(self, commit=True):
-        """
-        Save the form, creating both a User and Client instance.
-        """
-        # Create the user first
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
-        
-        # Set first and last name from the name field
         name_parts = self.cleaned_data['name'].split(' ', 1)
         user.first_name = name_parts[0]
         if len(name_parts) > 1:
             user.last_name = name_parts[1]
-            
         if commit:
             user.save()
-            
-            # Create the client profile
             client = Client.objects.create(
                 user=user,
                 name=self.cleaned_data['name'],
                 email=self.cleaned_data['email'],
-                phone=self.cleaned_data.get('phone', ''),
-                address=self.cleaned_data.get('address', ''),
-                date_of_birth=self.cleaned_data.get('date_of_birth')
+                phone=self.cleaned_data['phone']
             )
-            
-            # Add user to Clients group
             from django.contrib.auth.models import Group
             clients_group, created = Group.objects.get_or_create(name='Clients')
             user.groups.add(clients_group)
-            
         return user
 
 class ClientProfileForm(forms.ModelForm):

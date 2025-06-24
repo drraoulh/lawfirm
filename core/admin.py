@@ -22,6 +22,13 @@ class UserAdmin(BaseUserAdmin):
     search_fields = ('username', 'first_name', 'last_name', 'email')
     ordering = ('username',)
     filter_horizontal = ('groups', 'user_permissions',)
+    # Explicitly define fieldsets to ensure is_active, groups, and user_permissions are visible
+    fieldsets = (
+        (None, {'fields': ('username', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
 
 @admin.register(Client)
 class ClientAdmin(admin.ModelAdmin):
@@ -31,28 +38,29 @@ class ClientAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
     readonly_fields = ('created_at', 'user_link')
-    filter_horizontal = ('cases',) if 'cases' in [f.name for f in Client._meta.get_fields()] else ()
-    
+    # Remove conditional filter_horizontal for clarity
+    # If you want to relate clients to cases, add a ManyToManyField in the model
+    # filter_horizontal = ('cases',)
+
     def get_queryset(self, request):
         qs = super().get_queryset(request)
         if not request.user.is_superuser:
-            # For non-superusers, only show clients they're associated with
             qs = qs.filter(Q(user=request.user) | Q(case__lawyer=request.user)).distinct()
         return qs
-        
+
     def get_readonly_fields(self, request, obj=None):
         # Make user field read-only if not a superuser
         if not request.user.is_superuser:
             return self.readonly_fields + ('user',)
         return self.readonly_fields
-    
+
     def user_link(self, obj):
         if obj.user:
-            url = reverse('admin:auth_user_change', args=[obj.user.id])
+            url = reverse('admin:core_user_change', args=[obj.user.id])
             return format_html('<a href="{0}">{1}</a>', url, obj.user.username)
         return 'No user account'
     user_link.short_description = 'User Account'
-    
+
     def case_count(self, obj):
         count = obj.case_set.count()
         url = reverse('admin:core_case_changelist') + f'?client__id__exact={obj.id}'

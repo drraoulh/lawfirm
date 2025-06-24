@@ -33,82 +33,40 @@ def register(request):
     if request.user.is_authenticated:
         messages.info(request, 'You are already logged in.')
         return redirect('dashboard')
-    
+
     if request.method == 'POST':
         form = ClientRegistrationForm(request.POST)
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    username = form.cleaned_data.get('username')
-                    email = form.cleaned_data.get('email')
-                    
-                    # Check if username already exists
-                    if User.objects.filter(username=username).exists():
-                        form.add_error('username', 'This username is already taken. Please choose a different one.')
-                        return render(request, 'registration/register.html', {'form': form})
-                    
-                    # Check if email already exists
-                    if User.objects.filter(email=email).exists():
-                        form.add_error('email', 'This email is already registered. Please use a different email or log in.')
-                        return render(request, 'registration/register.html', {'form': form})
-                    
-                    # Create the user
-                    user = User.objects.create_user(
-                        username=username,
-                        email=email,
-                        password=form.cleaned_data['password1'],
-                        first_name=form.cleaned_data['name'].split(' ')[0],
-                        last_name=' '.join(form.cleaned_data['name'].split(' ')[1:]) if ' ' in form.cleaned_data['name'] else ''
-                    )
-                    
+                    user = form.save(commit=False)
+                    user.is_active = False  # Require admin validation
+                    user.save()
                     # Create the client profile
-                    client = Client(
-                        user=user,
-                        name=form.cleaned_data['name'],
-                        email=email.lower(),
-                        phone=form.cleaned_data.get('phone', ''),
-                        address=form.cleaned_data.get('address', ''),
-                        date_of_birth=form.cleaned_data.get('date_of_birth')
-                    )
-                    client.full_clean()
-                    client.save()
-                    
-                    # Log the user in
-                    login(request, user)
-                    messages.success(request, 'Registration successful! Welcome to your dashboard.')
-                    return redirect('dashboard')
-                    
+                    if not hasattr(user, 'client_profile'):
+                        Client.objects.create(
+                            user=user,
+                            name=form.cleaned_data['name'],
+                            email=form.cleaned_data['email']
+                        )
+                    from django.contrib.auth.models import Group
+                    clients_group, created = Group.objects.get_or_create(name='Clients')
+                    user.groups.add(clients_group)
+                    messages.success(request, 'Your account has been created and is pending admin approval. You will be able to log in once an admin activates your account.')
+                    return redirect('login')
             except ValidationError as e:
-                # Handle model validation errors
                 for field, errors in e.message_dict.items():
                     for error in errors:
                         form.add_error(field, error)
             except Exception as e:
-                # Log the exception for debugging
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.exception("Error during registration")
-                
-                # User-friendly error message
-                error_message = 'An error occurred during registration. '
-                if 'duplicate' in str(e).lower():
-                    if 'username' in str(e).lower():
-                        error_message += 'This username is already taken.'
-                    elif 'email' in str(e).lower():
-                        error_message += 'This email is already registered.'
-                    else:
-                        error_message += 'The provided information conflicts with an existing account.'
-                else:
-                    error_message += 'Please check your information and try again.'
-                
-                messages.error(request, error_message)
-                
-            # If we get here, there was an error
-            return render(request, 'registration/register.html', {'form': form})
-                
+                messages.error(request, 'An unexpected error occurred during registration. Please try again or contact support.')
+        return render(request, 'registration/register.html', {'form': form})
     else:
         form = ClientRegistrationForm()
-    
+
     return render(request, 'registration/register.html', {
         'form': form,
         'title': 'Client Registration'
@@ -143,23 +101,36 @@ class ClientProfileView(LoginRequiredMixin, UpdateView):
         messages.success(self.request, 'Profile updated successfully!')
         return super().form_valid(form)
 
-@login_required
 def dashboard(request):
     query = request.GET.get('q')
-    cases = Case.objects.order_by('-opened_on')
-    clients = Client.objects.order_by('name')
-
-    if query:
-        cases = cases.filter(
-            Q(title__icontains=query) |
-            Q(description__icontains=query) |
-            Q(client__name__icontains=query)
-        ).distinct()
-        clients = clients.filter(
-            Q(name__icontains=query) |
-            Q(email__icontains=query)
-        ).distinct()
-
+    # If user is admin or lawyer, show all cases/clients
+    if request.user.is_superuser or request.user.groups.filter(name__in=['Admin', 'Lawyer']).exists():
+        cases = Case.objects.order_by('-opened_on')
+        clients = Client.objects.order_by('name')
+        if query:
+            cases = cases.filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(client__name__icontains=query)
+            ).distinct()
+            clients = clients.filter(
+                Q(name__icontains=query) |
+                Q(email__icontains=query)
+            ).distinct()
+    else:
+        # If user is a client, only show their own cases and profile
+        try:
+            client = request.user.client_profile
+            cases = Case.objects.filter(client=client).order_by('-opened_on')
+            clients = Client.objects.filter(pk=client.pk)
+            if query:
+                cases = cases.filter(
+                    Q(title__icontains=query) |
+                    Q(description__icontains=query)
+                ).distinct()
+        except Client.DoesNotExist:
+            cases = Case.objects.none()
+            clients = Client.objects.none()
     context = {
         'cases': cases,
         'clients': clients,
@@ -170,7 +141,7 @@ def dashboard(request):
 @group_required('Admin', 'Lawyer')
 def client_create(request):
     if request.method == 'POST':
-        form = ClientForm(request.POST)
+        form = ClientProfileForm(request.POST)
         if form.is_valid():
             try:
                 client = form.save()
@@ -182,7 +153,7 @@ def client_create(request):
                 else:
                     messages.error(request, f'An error occurred: {str(e)}')
     else:
-        form = ClientForm()
+        form = ClientProfileForm()
     return render(request, 'form_template.html', {'form': form, 'title': 'Add New Client'})
 
 @login_required
@@ -200,7 +171,11 @@ def case_create(request):
 
 @login_required
 def case_detail(request, pk):
-    case = Case.objects.get(pk=pk)
+    case = get_object_or_404(Case, pk=pk)
+    # Only allow access if admin/lawyer or the client owns the case
+    if not (request.user.is_superuser or request.user.groups.filter(name__in=['Admin', 'Lawyer']).exists() or (hasattr(request.user, 'client_profile') and case.client == request.user.client_profile)):
+        messages.error(request, 'You do not have permission to view this case.')
+        return redirect('dashboard')
     documents = Document.objects.filter(case=case)
     form = DocumentForm() # Initialize form for GET request
 
@@ -224,7 +199,11 @@ def case_detail(request, pk):
 
 @login_required
 def client_detail(request, pk):
-    client = Client.objects.get(pk=pk)
+    client = get_object_or_404(Client, pk=pk)
+    # Only allow access if admin/lawyer or the client is viewing their own profile
+    if not (request.user.is_superuser or request.user.groups.filter(name__in=['Admin', 'Lawyer']).exists() or (hasattr(request.user, 'client_profile') and request.user.client_profile.pk == client.pk)):
+        messages.error(request, 'You do not have permission to view this client.')
+        return redirect('dashboard')
     cases = Case.objects.filter(client=client)
     context = {
         'client': client,
@@ -237,13 +216,13 @@ def client_detail(request, pk):
 def client_update(request, pk):
     client = get_object_or_404(Client, pk=pk)
     if request.method == 'POST':
-        form = ClientForm(request.POST, instance=client)
+        form = ClientProfileForm(request.POST, instance=client)
         if form.is_valid():
             form.save()
             messages.success(request, f'Client "{client.name}" has been updated successfully.')
             return redirect('client_detail', pk=client.pk)
     else:
-        form = ClientForm(instance=client)
+        form = ClientProfileForm(instance=client)
     return render(request, 'form_template.html', {'form': form, 'title': 'Edit Client'})
 
 @login_required
