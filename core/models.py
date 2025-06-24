@@ -241,3 +241,17 @@ class Visitor(models.Model):
 
     def __str__(self):
         return f"Inquiry from {self.name} on {self.submitted_at.strftime('%Y-%m-%d')}"
+
+
+class Appointment(models.Model):
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='appointments')
+    date = models.DateField()
+    time = models.TimeField()
+    message = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date', '-time']
+
+    def __str__(self):
+        return f"Appointment for {self.client.name} on {self.date} at {self.time}"

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}Book Appointment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card mt-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Book Appointment</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_date" class="form-label">Date</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <div class="invalid-feedback d-block">{{ form.date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_time" class="form-label">Time</label>
+                        {{ form.time }}
+                        {% if form.time.errors %}
+                            <div class="invalid-feedback d-block">{{ form.time.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_message" class="form-label">Message (optional)</label>
+                        {{ form.message }}
+                        {% if form.message.errors %}
+                            <div class="invalid-feedback d-block">{{ form.message.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-calendar-plus me-2"></i>Book</button>
+                    </div>
+                </form>
+                <div class="text-center mt-3">
+                    <a href="{% url 'dashboard' %}" class="btn btn-link">&larr; Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -12,7 +12,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 
 from .models import Client, Case, Document, Visitor
-from .forms import ClientRegistrationForm, ClientProfileForm, CaseForm, DocumentForm, VisitorForm
+from .forms import ClientRegistrationForm, ClientProfileForm, CaseForm, DocumentForm, VisitorForm, AppointmentForm
 from .decorators import group_required
 
 def landing_page(request):
@@ -238,3 +238,21 @@ def case_update(request, pk):
     else:
         form = CaseForm(instance=case)
     return render(request, 'form_template.html', {'form': form, 'title': 'Edit Case'})
+
+@login_required
+def book_appointment(request):
+    # Only allow clients to book appointments
+    if not hasattr(request.user, 'client_profile'):
+        messages.error(request, 'Only clients can book appointments.')
+        return redirect('dashboard')
+    if request.method == 'POST':
+        form = AppointmentForm(request.POST)
+        if form.is_valid():
+            appointment = form.save(commit=False)
+            appointment.client = request.user.client_profile
+            appointment.save()
+            messages.success(request, 'Your appointment has been booked!')
+            return redirect('dashboard')
+    else:
+        form = AppointmentForm()
+    return render(request, 'book_appointment.html', {'form': form})

@@ -37,9 +37,9 @@
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <div class="card">
-            <div class="card-header">
-                <h2 class="text-center mb-0">Client Registration</h2>
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h2 class="text-center mb-0"><i class="fas fa-user-plus me-2"></i>Client Registration</h2>
             </div>
             <div class="card-body">
                 {% if form.non_field_errors %}
@@ -85,7 +85,7 @@
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="form-group">
                                 <label for="id_name" class="form-label">Full Name</label>
                                 {{ form.name }}
@@ -99,17 +99,18 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="col-md-6">
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
                             <div class="form-group">
-                                <label for="id_phone" class="form-label">Phone</label>
+                                <label for="id_phone" class="form-label">Phone Number</label>
                                 {{ form.phone }}
                                 {% if form.phone.help_text %}
                                     <div class="form-text">{{ form.phone.help_text }}</div>
                                 {% endif %}
                                 {% if form.phone.errors %}
-                                    <div class="invalid-feedback">
-                                        {{ form.phone.errors.0 }}
-                                    </div>
+                                    <div class="invalid-feedback">{{ form.phone.errors.0 }}</div>
                                 {% endif %}
                             </div>
                         </div>
@@ -150,39 +151,8 @@
                         </div>
                     </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="id_date_of_birth" class="form-label">Date of Birth</label>
-                                {{ form.date_of_birth }}
-                                {% if form.date_of_birth.help_text %}
-                                    <div class="form-text">{{ form.date_of_birth.help_text }}</div>
-                                {% endif %}
-                                {% if form.date_of_birth.errors %}
-                                    <div class="invalid-feedback">
-                                        {{ form.date_of_birth.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="id_address" class="form-label">Address</label>
-                                {{ form.address }}
-                                {% if form.address.help_text %}
-                                    <div class="form-text">{{ form.address.help_text }}</div>
-                                {% endif %}
-                                {% if form.address.errors %}
-                                    <div class="invalid-feedback">
-                                        {{ form.address.errors.0 }}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="d-grid gap-2 mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg">Register</button>
+                        <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-user-plus me-2"></i>Register</button>
                     </div>
                 </form>
 

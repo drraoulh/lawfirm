@@ -12,7 +12,11 @@
             <div class="card-body">
                 {% if form.errors %}
                     <div class="alert alert-danger" role="alert">
-                        Your username and password didn't match. Please try again.
+                        {% if form.errors.inactive %}
+                            {{ form.errors.inactive.0 }}
+                        {% else %}
+                            Your username and password didn't match. Please try again.
+                        {% endif %}
                     </div>
                 {% endif %}
 

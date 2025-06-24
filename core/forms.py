@@ -6,7 +6,7 @@ from django.core.validators import validate_email
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.password_validation import password_validators_help_text_html
-from .models import Visitor, Client, Case, Document
+from .models import Visitor, Client, Case, Document, Appointment
 
 User = get_user_model()
 
@@ -280,3 +280,13 @@ class DocumentForm(forms.ModelForm):
     class Meta:
         model = Document
         fields = ['title', 'file']
+
+class AppointmentForm(forms.ModelForm):
+    class Meta:
+        model = Appointment
+        fields = ['date', 'time', 'message']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'message': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for appointment (optional)'}),
+        }
