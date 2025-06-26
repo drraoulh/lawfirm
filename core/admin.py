@@ -4,7 +4,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models import Q
-from .models import User, Client, Case, Document, Visitor
+from .models import User, Client, Case, Document, Visitor, Appointment
 from django.contrib.auth.models import Group
 
 # Customize the admin site
@@ -336,3 +336,10 @@ class VisitorAdmin(admin.ModelAdmin):
     def message_preview(self, obj):
         return f"{obj.message[:50]}..." if obj.message else ""
     message_preview.short_description = 'Message Preview'
+
+@admin.register(Appointment)
+class AppointmentAdmin(admin.ModelAdmin):
+    list_display = ('client', 'date', 'time', 'created_at')
+    search_fields = ('client__name', 'client__email', 'message')
+    list_filter = ('date', 'client')
+    ordering = ('-date', '-time')
