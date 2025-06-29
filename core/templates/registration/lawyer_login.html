@@ -1,19 +1,22 @@
 {% extends 'base.html' %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Lawyer Login{% endblock %}
 
 {% block content %}
-<div class="login-container">
+<div class="lawyer-login-container">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
-                <div class="login-card">
-                    <div class="login-header text-center mb-4">
-                        <div class="logo-container mb-3">
-                            <i class="fas fa-gavel fa-3x text-primary"></i>
+                <div class="lawyer-login-card">
+                    <div class="lawyer-login-header text-center mb-4">
+                        <div class="lawyer-logo-container mb-3">
+                            <i class="fas fa-gavel fa-3x text-white"></i>
                         </div>
-                        <h2 class="text-primary mb-2">Welcome Back</h2>
-                        <p class="text-muted">Sign in to your account</p>
+                        <h2 class="text-primary mb-2">Lawyer Portal</h2>
+                        <p class="text-muted">Professional Legal Practice Management</p>
+                        <div class="lawyer-badge">
+                            <i class="fas fa-user-tie me-2"></i>Legal Professional Access
+                        </div>
                     </div>
 
                     {% if messages %}
@@ -26,52 +29,40 @@
                         {% endfor %}
                     {% endif %}
 
-                    <form method="post" class="login-form">
+                    <form method="post" class="lawyer-login-form">
                         {% csrf_token %}
                         
                         <div class="form-group mb-3">
-                            <label for="{{ form.username.id_for_label }}" class="form-label">
-                                <i class="fas fa-user me-2"></i>Username
+                            <label for="username" class="form-label">
+                                <i class="fas fa-user-tie me-2"></i>Professional Username
                             </label>
-                            {{ form.username }}
-                            {% if form.username.errors %}
-                                <div class="text-danger small mt-1">
-                                    <i class="fas fa-exclamation-circle me-1"></i>
-                                    {{ form.username.errors.0 }}
-                                </div>
-                            {% endif %}
+                            <input type="text" name="username" id="username" class="form-control" required>
                         </div>
 
                         <div class="form-group mb-4">
-                            <label for="{{ form.password.id_for_label }}" class="form-label">
+                            <label for="password" class="form-label">
                                 <i class="fas fa-lock me-2"></i>Password
                             </label>
-                            {{ form.password }}
-                            {% if form.password.errors %}
-                                <div class="text-danger small mt-1">
-                                    <i class="fas fa-exclamation-circle me-1"></i>
-                                    {{ form.password.errors.0 }}
-                                </div>
-                            {% endif %}
+                            <input type="password" name="password" id="password" class="form-control" required>
                         </div>
 
                         <div class="d-grid mb-3">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                                <i class="fas fa-sign-in-alt me-2"></i>Access Lawyer Portal
                             </button>
                         </div>
 
                         <div class="text-center">
                             <p class="text-muted mb-0">
-                                Don't have an account? 
-                                <a href="{% url 'register' %}" class="text-primary text-decoration-none">
-                                    <strong>Register as Client</strong>
+                                Not a lawyer? 
+                                <a href="{% url 'login' %}" class="text-primary text-decoration-none">
+                                    <strong>Client Login</strong>
                                 </a>
                             </p>
                             <p class="text-muted mt-2">
-                                Are you a lawyer? 
+                                Need to register? 
                                 <a href="{% url 'lawyer_register' %}" class="text-primary text-decoration-none">
-                                    <strong>Register as Lawyer</strong>
+                                    <strong>Lawyer Registration</strong>
                                 </a>
                             </p>
                         </div>
@@ -79,7 +70,39 @@
 
                     <hr class="my-4">
 
-                    <div class="text-center">
+                    <div class="lawyer-features">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-star me-2"></i>Lawyer Portal Features
+                        </h6>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-calendar-check text-success"></i>
+                                    <small>Appointment Management</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-briefcase text-primary"></i>
+                                    <small>Case Management</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-users text-info"></i>
+                                    <small>Client Management</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="feature-item">
+                                    <i class="fas fa-file-alt text-warning"></i>
+                                    <small>Document Management</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
                         <a href="{% url 'landing_page' %}" class="text-muted text-decoration-none">
                             <i class="fas fa-arrow-left me-1"></i>Back to Home
                         </a>
@@ -91,24 +114,24 @@
 </div>
 
 <style>
-.login-container {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.lawyer-login-container {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
     padding: 20px 0;
 }
 
-.login-card {
+.lawyer-login-card {
     background: white;
     border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
     padding: 40px;
     position: relative;
     overflow: hidden;
 }
 
-.login-card::before {
+.lawyer-login-card::before {
     content: '';
     position: absolute;
     top: 0;
@@ -118,25 +141,33 @@
     background: linear-gradient(90deg, #007bff, #0056b3, #004085);
 }
 
-.logo-container {
-    width: 80px;
-    height: 80px;
+.lawyer-logo-container {
+    width: 90px;
+    height: 90px;
     background: linear-gradient(135deg, #007bff, #0056b3);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto;
-    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+    box-shadow: 0 10px 25px rgba(0, 123, 255, 0.4);
 }
 
-.logo-container i {
-    color: white !important;
+.lawyer-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-top: 10px;
 }
 
-.login-header h2 {
+.lawyer-login-header h2 {
     font-weight: 700;
     margin-bottom: 8px;
+    color: #007bff;
 }
 
 .form-group {
@@ -213,25 +244,56 @@ hr {
     opacity: 0.5;
 }
 
+.lawyer-features {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.feature-item {
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+    background-color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.feature-item i {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.feature-item small {
+    font-weight: 600;
+    color: #495057;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
-    .login-card {
+    .lawyer-login-card {
         padding: 30px 20px;
         margin: 10px;
     }
     
-    .logo-container {
-        width: 60px;
-        height: 60px;
+    .lawyer-logo-container {
+        width: 70px;
+        height: 70px;
     }
     
-    .logo-container i {
+    .lawyer-logo-container i {
         font-size: 2rem !important;
     }
 }
 
 /* Animation */
-.login-card {
+.lawyer-login-card {
     animation: slideInUp 0.6s ease-out;
 }
 
@@ -257,4 +319,4 @@ hr {
     background-color: #f8fff9;
 }
 </style>
-{% endblock %}
+{% endblock %} 

@@ -290,3 +290,400 @@ class AppointmentForm(forms.ModelForm):
             'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'message': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Reason for appointment (optional)'}),
         }
+    
+    def clean_date(self):
+        date = self.cleaned_data.get('date')
+        if date and date < timezone.now().date():
+            raise forms.ValidationError('Appointment date cannot be in the past.')
+        return date
+
+class LawyerRegistrationForm(UserCreationForm):
+    name = forms.CharField(
+        max_length=255,
+        required=True,
+        help_text='Your full name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'John Doe',
+            'autofocus': 'autofocus'
+        })
+    )
+    email = forms.EmailField(
+        required=True,
+        help_text='A valid email address',
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'your.email@example.com',
+            'autocomplete': 'email'
+        })
+    )
+    phone = forms.CharField(
+        max_length=20,
+        required=True,
+        help_text='Your phone number',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+1 (555) 123-4567'
+        })
+    )
+    specialization = forms.ChoiceField(
+        choices=[],
+        required=True,
+        help_text='Your primary area of legal practice',
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        })
+    )
+    bar_number = forms.CharField(
+        max_length=50,
+        required=False,
+        help_text='Your bar association number (optional)',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Bar Number'
+        })
+    )
+    years_experience = forms.IntegerField(
+        min_value=0,
+        required=True,
+        help_text='Years of legal experience',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '0'
+        })
+    )
+    bio = forms.CharField(
+        required=False,
+        help_text='Professional biography (optional)',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Tell us about your legal experience and expertise...'
+        })
+    )
+    username = forms.CharField(
+        max_length=150,
+        required=True,
+        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'johndoe',
+            'autocomplete': 'username',
+        })
+    )
+    password1 = forms.CharField(
+        label='Password',
+        strip=False,
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+            'placeholder': 'Create a password'
+        })
+    )
+    password2 = forms.CharField(
+        label='Password confirmation',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'autocomplete': 'new-password',
+            'placeholder': 'Enter the same password again'
+        }),
+        strip=False,
+        help_text='Enter the same password as before, for verification.',
+    )
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'name', 'phone', 'specialization', 'bar_number', 'years_experience', 'bio', 'password1', 'password2')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Import here to avoid circular imports
+        from .models import Lawyer
+        self.fields['specialization'].choices = Lawyer.SPECIALIZATION_CHOICES
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username').strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError('This username is already taken.')
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').lower().strip()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError('This email is already registered.')
+        return email
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+        name_parts = self.cleaned_data['name'].split(' ', 1)
+        user.first_name = name_parts[0]
+        if len(name_parts) > 1:
+            user.last_name = name_parts[1]
+        if commit:
+            user.save()
+            # Import here to avoid circular imports
+            from .models import Lawyer
+            lawyer = Lawyer.objects.create(
+                user=user,
+                name=self.cleaned_data['name'],
+                email=self.cleaned_data['email'],
+                phone=self.cleaned_data['phone'],
+                specialization=self.cleaned_data['specialization'],
+                bar_number=self.cleaned_data['bar_number'],
+                years_experience=self.cleaned_data['years_experience'],
+                bio=self.cleaned_data['bio']
+            )
+            from django.contrib.auth.models import Group
+            lawyers_group, created = Group.objects.get_or_create(name='Lawyers')
+            user.groups.add(lawyers_group)
+        return user
+
+class LawyerProfileForm(forms.ModelForm):
+    """
+    Form for updating lawyer profile information.
+    """
+    email = forms.EmailField(
+        required=True,
+        help_text='Your email address',
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'your.email@example.com',
+            'autocomplete': 'email'
+        })
+    )
+    
+    name = forms.CharField(
+        max_length=255,
+        required=True,
+        help_text='Your full name',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'John Doe'
+        })
+    )
+    
+    phone = forms.CharField(
+        max_length=20,
+        required=False,
+        help_text='Contact phone number',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '+1 (555) 123-4567'
+        })
+    )
+    
+    specialization = forms.ChoiceField(
+        choices=[],
+        required=True,
+        help_text='Your primary area of legal practice',
+        widget=forms.Select(attrs={
+            'class': 'form-control'
+        })
+    )
+    
+    bar_number = forms.CharField(
+        max_length=50,
+        required=False,
+        help_text='Your bar association number',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Bar Number'
+        })
+    )
+    
+    years_experience = forms.IntegerField(
+        min_value=0,
+        required=True,
+        help_text='Years of legal experience',
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '0'
+        })
+    )
+    
+    bio = forms.CharField(
+        required=False,
+        help_text='Professional biography',
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 4,
+            'placeholder': 'Tell us about your legal experience and expertise...'
+        })
+    )
+    
+    is_available = forms.BooleanField(
+        required=False,
+        help_text='Check if you are currently accepting new cases',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'form-check-input'
+        })
+    )
+
+    class Meta:
+        from .models import Lawyer
+        model = Lawyer
+        fields = ['name', 'email', 'phone', 'specialization', 'bar_number', 'years_experience', 'bio', 'is_available']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Import here to avoid circular imports
+        from .models import Lawyer
+        self.fields['specialization'].choices = Lawyer.SPECIALIZATION_CHOICES
+        
+        # Set initial values from the user model
+        if self.instance and hasattr(self.instance, 'user'):
+            self.fields['email'].initial = self.instance.user.email
+            self.fields['name'].initial = self.instance.name
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').lower().strip()
+        if not email:
+            raise forms.ValidationError('Please enter your email address.')
+            
+        # Check for valid email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            raise forms.ValidationError('Please enter a valid email address.')
+        
+        # Check if email is already in use by another user
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.user.pk).exists():
+            raise forms.ValidationError('This email is already in use by another account.')
+            
+        return email
+    
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        if not name:
+            raise forms.ValidationError('Please enter your full name.')
+            
+        # Clean up name formatting
+        return ' '.join(part.capitalize() for part in name.split() if part)
+
+    def save(self, commit=True):
+        """
+        Save the lawyer profile and update the associated User model.
+        """
+        lawyer = super().save(commit=False)
+        
+        # Update the associated user's email if it changed
+        if lawyer.user.email != self.cleaned_data['email']:
+            lawyer.user.email = self.cleaned_data['email']
+            
+            # Update username if it was based on the old email
+            if lawyer.user.username.lower() == lawyer.user.email.lower():
+                lawyer.user.username = self.cleaned_data['email']
+            
+            if commit:
+                lawyer.user.save()
+        
+        # Update the lawyer's name
+        if hasattr(lawyer, 'user'):
+            name_parts = self.cleaned_data['name'].split(' ', 1)
+            lawyer.user.first_name = name_parts[0]
+            lawyer.user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            if commit:
+                lawyer.user.save()
+        
+        if commit:
+            lawyer.save()
+            
+        return lawyer
+
+class AppointmentResponseForm(forms.ModelForm):
+    """
+    Form for lawyers to respond to appointment requests.
+    """
+    class Meta:
+        model = Appointment
+        fields = ['status', 'lawyer_notes', 'rejection_reason', 'reschedule_reason']
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'lawyer_notes': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': 'Additional notes for the client (optional)'
+            }),
+            'rejection_reason': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': 'Reason for rejection (required if rejecting)'
+            }),
+            'reschedule_reason': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': 'Reason for rescheduling (required if rescheduling)'
+            }),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        status = cleaned_data.get('status')
+        rejection_reason = cleaned_data.get('rejection_reason')
+        reschedule_reason = cleaned_data.get('reschedule_reason')
+        
+        if status == 'rejected' and not rejection_reason:
+            self.add_error('rejection_reason', 'Please provide a reason for rejection.')
+        
+        if status == 'rescheduled' and not reschedule_reason:
+            self.add_error('reschedule_reason', 'Please provide a reason for rescheduling.')
+        
+        return cleaned_data
+
+class AppointmentRescheduleForm(forms.ModelForm):
+    """
+    Form for rescheduling appointments.
+    """
+    class Meta:
+        model = Appointment
+        fields = ['date', 'time', 'reschedule_reason']
+        widgets = {
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'reschedule_reason': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3, 
+                'placeholder': 'Reason for rescheduling'
+            }),
+        }
+    
+    def clean_date(self):
+        date = self.cleaned_data.get('date')
+        if date and date < timezone.now().date():
+            raise forms.ValidationError('Rescheduled date cannot be in the past.')
+        return date
+
+class ClientDocumentForm(forms.ModelForm):
+    """
+    Form for clients to upload documents related to their cases.
+    """
+    class Meta:
+        model = Document
+        fields = ['title', 'file']
+        widgets = {
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Document title (e.g., Contract, Evidence, etc.)'
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png'
+            })
+        }
+    
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+        if file:
+            # Check file size (max 10MB)
+            if file.size > 10 * 1024 * 1024:
+                raise forms.ValidationError('File size must be less than 10MB.')
+            
+            # Check file extension
+            allowed_extensions = ['.pdf', '.doc', '.docx', '.txt', '.jpg', '.jpeg', '.png']
+            import os
+            ext = os.path.splitext(file.name)[1].lower()
+            if ext not in allowed_extensions:
+                raise forms.ValidationError('Only PDF, DOC, DOCX, TXT, JPG, JPEG, and PNG files are allowed.')
+        
+        return file

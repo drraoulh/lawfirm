@@ -1,0 +1,512 @@
+{% extends 'base.html' %}
+
+{% block title %}Lawyer Dashboard{% endblock %}
+
+{% block content %}
+<div class="lawyer-dashboard">
+    <!-- Header Section -->
+    <div class="lawyer-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="lawyer-welcome">
+                        <i class="fas fa-user-tie me-3"></i>
+                        Welcome, {{ lawyer.user.get_full_name|default:lawyer.user.username }}
+                    </h1>
+                    <p class="lawyer-subtitle">Professional Legal Practice Management Dashboard</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="lawyer-status">
+                        <span class="status-badge">
+                            <i class="fas fa-circle text-success me-2"></i>Active Professional
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Appointment Statistics -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card appointment-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ appointment_stats.total_appointments }}</h3>
+                        <p>Total Appointments</p>
+                        <div class="stat-breakdown">
+                            <small class="text-success">{{ appointment_stats.pending_appointments }} Pending</small>
+                            <small class="text-primary">{{ appointment_stats.accepted_appointments }} Accepted</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Case Statistics -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card case-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ case_stats.total_cases }}</h3>
+                        <p>Active Cases</p>
+                        <div class="stat-breakdown">
+                            <small class="text-warning">{{ case_stats.open_cases }} Open</small>
+                            <small class="text-info">{{ case_stats.pending_cases }} Pending</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Statistics -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card client-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>{{ clients.count }}</h3>
+                        <p>Total Clients</p>
+                        <div class="stat-breakdown">
+                            <small class="text-success">Active Clients</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Revenue Statistics -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="stat-card revenue-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <h3>Professional</h3>
+                        <p>Practice Status</p>
+                        <div class="stat-breakdown">
+                            <small class="text-success">Excellent</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="row">
+            <!-- Recent Appointments -->
+            <div class="col-lg-8 mb-4">
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-calendar-alt me-2"></i>Recent Appointments</h5>
+                        <a href="{% url 'appointment_list' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye me-1"></i>View All
+                        </a>
+                    </div>
+                    <div class="card-body-custom">
+                        {% if appointments %}
+                            <div class="appointment-list">
+                                {% for appointment in appointments %}
+                                    <div class="appointment-item">
+                                        <div class="appointment-info">
+                                            <div class="appointment-client">
+                                                <strong>{{ appointment.client.name }}</strong>
+                                                <span class="appointment-date">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    {{ appointment.appointment_date|date:"M d, Y" }} at {{ appointment.appointment_time }}
+                                                </span>
+                                            </div>
+                                            <div class="appointment-status">
+                                                <span class="status-badge status-{{ appointment.status }}">
+                                                    {{ appointment.status|title }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="appointment-actions">
+                                            <a href="{% url 'appointment_detail' appointment.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>View
+                                            </a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">No appointments scheduled yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="col-lg-4 mb-4">
+                <div class="content-card">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                    </div>
+                    <div class="card-body-custom">
+                        <div class="quick-actions">
+                            <a href="{% url 'appointment_list' %}" class="action-item">
+                                <i class="fas fa-calendar-check"></i>
+                                <span>Manage Appointments</span>
+                            </a>
+                            <a href="{% url 'case_create' %}" class="action-item">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Create New Case</span>
+                            </a>
+                            <a href="{% url 'client_create' %}" class="action-item">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Add New Client</span>
+                            </a>
+                            <a href="{% url 'lawyer_profile' %}" class="action-item">
+                                <i class="fas fa-user-edit"></i>
+                                <span>Update Profile</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Cases -->
+                <div class="content-card mt-4">
+                    <div class="card-header-custom">
+                        <h5><i class="fas fa-briefcase me-2"></i>Recent Cases</h5>
+                    </div>
+                    <div class="card-body-custom">
+                        {% if cases %}
+                            <div class="case-list">
+                                {% for case in cases %}
+                                    <div class="case-item">
+                                        <div class="case-title">
+                                            <strong>{{ case.title }}</strong>
+                                        </div>
+                                        <div class="case-client">
+                                            <small class="text-muted">{{ case.client.name }}</small>
+                                        </div>
+                                        <div class="case-status">
+                                            <span class="status-badge status-{{ case.status }}">
+                                                {{ case.status|title }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-briefcase fa-2x text-muted mb-2"></i>
+                                <p class="text-muted small">No cases yet.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.lawyer-dashboard {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+}
+
+.lawyer-header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    padding: 40px 0;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.lawyer-welcome {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.lawyer-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+}
+
+.lawyer-status {
+    margin-top: 10px;
+}
+
+.status-badge {
+    background: rgba(255,255,255,0.2);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+/* Statistics Cards */
+.stat-card {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+}
+
+.appointment-card::before { background: linear-gradient(90deg, #28a745, #20c997); }
+.case-card::before { background: linear-gradient(90deg, #007bff, #0056b3); }
+.client-card::before { background: linear-gradient(90deg, #17a2b8, #138496); }
+.revenue-card::before { background: linear-gradient(90deg, #ffc107, #e0a800); }
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.appointment-card .stat-icon { background: linear-gradient(135deg, #28a745, #20c997); }
+.case-card .stat-icon { background: linear-gradient(135deg, #007bff, #0056b3); }
+.client-card .stat-icon { background: linear-gradient(135deg, #17a2b8, #138496); }
+.revenue-card .stat-icon { background: linear-gradient(135deg, #ffc107, #e0a800); }
+
+.stat-content h3 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: #2c3e50;
+}
+
+.stat-content p {
+    color: #6c757d;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.stat-breakdown {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.stat-breakdown small {
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.05);
+}
+
+/* Content Cards */
+.content-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.card-header-custom {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 20px 25px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-header-custom h5 {
+    margin: 0;
+    font-weight: 700;
+    color: #2c3e50;
+}
+
+.card-body-custom {
+    padding: 25px;
+}
+
+/* Appointment List */
+.appointment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.appointment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.appointment-item:hover {
+    background: #e9ecef;
+    transform: translateX(5px);
+}
+
+.appointment-client strong {
+    display: block;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.appointment-date {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.appointment-status {
+    margin: 10px 0;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-pending { background: #fff3cd; color: #856404; }
+.status-accepted { background: #d4edda; color: #155724; }
+.status-rejected { background: #f8d7da; color: #721c24; }
+.status-rescheduled { background: #d1ecf1; color: #0c5460; }
+.status-completed { background: #d4edda; color: #155724; }
+
+/* Quick Actions */
+.quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.action-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #2c3e50;
+    transition: all 0.3s ease;
+}
+
+.action-item:hover {
+    background: #007bff;
+    color: white;
+    transform: translateX(5px);
+    text-decoration: none;
+}
+
+.action-item i {
+    width: 30px;
+    font-size: 1.2rem;
+    margin-right: 15px;
+}
+
+/* Case List */
+.case-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.case-item {
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.case-item:hover {
+    background: #e9ecef;
+}
+
+.case-title {
+    margin-bottom: 5px;
+}
+
+.case-client {
+    margin-bottom: 8px;
+}
+
+.case-status {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .lawyer-welcome {
+        font-size: 2rem;
+    }
+    
+    .stat-content h3 {
+        font-size: 2rem;
+    }
+    
+    .card-header-custom {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .appointment-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .appointment-actions {
+        align-self: flex-end;
+    }
+}
+
+/* Animation */
+.stat-card, .content-card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>
+{% endblock %} 

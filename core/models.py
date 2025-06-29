@@ -199,9 +199,8 @@ class Client(models.Model):
         """
         user = self.user
         super().delete(*args, **kwargs)
-        
-        # Delete the User if no other related objects exist
-        if user and not hasattr(user, 'client_profile'):
+        # Delete the user if no other related objects exist
+        if user and not user.case_set.exists() and not user.appointments.exists():
             user.delete()
 
 
@@ -244,14 +243,187 @@ class Visitor(models.Model):
 
 
 class Appointment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('rescheduled', 'Rescheduled'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='appointments')
+    lawyer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='appointments')
     date = models.DateField()
     time = models.TimeField()
     message = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # For rescheduling
+    original_date = models.DateField(null=True, blank=True)
+    original_time = models.TimeField(null=True, blank=True)
+    reschedule_reason = models.TextField(blank=True)
+    
+    # For lawyer notes
+    lawyer_notes = models.TextField(blank=True)
+    rejection_reason = models.TextField(blank=True)
 
     class Meta:
         ordering = ['-date', '-time']
 
     def __str__(self):
-        return f"Appointment for {self.client.name} on {self.date} at {self.time}"
+        return f"{self.client.name} - {self.date} at {self.time} ({self.get_status_display()})"
+    
+    def save(self, *args, **kwargs):
+        # Track original date/time for rescheduling
+        if self.pk:
+            old_instance = Appointment.objects.get(pk=self.pk)
+            if old_instance.date != self.date or old_instance.time != self.time:
+                if not self.original_date:
+                    self.original_date = old_instance.date
+                    self.original_time = old_instance.time
+        super().save(*args, **kwargs)
+
+
+class Lawyer(models.Model):
+    SPECIALIZATION_CHOICES = [
+        ('criminal', 'Criminal Law'),
+        ('civil', 'Civil Law'),
+        ('family', 'Family Law'),
+        ('corporate', 'Corporate Law'),
+        ('real_estate', 'Real Estate Law'),
+        ('immigration', 'Immigration Law'),
+        ('tax', 'Tax Law'),
+        ('employment', 'Employment Law'),
+        ('intellectual_property', 'Intellectual Property Law'),
+        ('general', 'General Practice'),
+    ]
+    
+    user = models.OneToOneField(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='lawyer_profile',
+        verbose_name='User Account'
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Lawyer's full name"
+    )
+    email = models.EmailField(
+        unique=True,
+        help_text="Primary email address"
+    )
+    phone = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        help_text="Contact phone number"
+    )
+    specialization = models.CharField(
+        max_length=50,
+        choices=SPECIALIZATION_CHOICES,
+        default='general',
+        help_text="Primary area of legal practice"
+    )
+    bar_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Bar association number"
+    )
+    years_experience = models.PositiveIntegerField(
+        default=0,
+        help_text="Years of legal experience"
+    )
+    bio = models.TextField(
+        blank=True,
+        help_text="Professional biography"
+    )
+    is_available = models.BooleanField(
+        default=True,
+        help_text="Whether the lawyer is currently accepting new cases"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Lawyer'
+        verbose_name_plural = 'Lawyers'
+
+    def __str__(self):
+        return f"{self.name} - {self.get_specialization_display()}"
+    
+    def clean(self):
+        """Ensure data integrity and proper formatting."""
+        if not self.email:
+            raise ValidationError({'email': 'Email is required.'})
+            
+        self.email = self.email.lower().strip()
+        
+        # Validate email format
+        from django.core.validators import validate_email
+        try:
+            validate_email(self.email)
+        except ValidationError:
+            raise ValidationError({'email': 'Enter a valid email address.'})
+        
+        # Check for duplicate email (excluding self)
+        query = Lawyer.objects.filter(email=self.email)
+        if self.pk:
+            query = query.exclude(pk=self.pk)
+            
+        if query.exists():
+            raise ValidationError({'email': 'A lawyer with this email already exists.'})
+        
+        # Validate name
+        if not self.name or not self.name.strip():
+            raise ValidationError({'name': 'Name is required.'})
+            
+        # Clean name
+        self.name = ' '.join(part.capitalize() for part in self.name.strip().split())
+    
+    def save(self, *args, **kwargs):
+        """Save the lawyer and ensure the associated User is kept in sync."""
+        from django.db import transaction
+        
+        # Run model validation
+        self.full_clean()
+        
+        try:
+            with transaction.atomic():
+                # Save the lawyer
+                super().save(*args, **kwargs)
+                
+                # Update the User model if needed
+                if hasattr(self, 'user') and self.user:
+                    needs_save = False
+                    
+                    # Update email if changed
+                    if self.email != self.user.email:
+                        self.user.email = self.email
+                        needs_save = True
+                    
+                    # Update names if they're empty
+                    if not self.user.first_name and not self.user.last_name:
+                        name_parts = self.name.split(' ', 1)
+                        self.user.first_name = name_parts[0]
+                        if len(name_parts) > 1:
+                            self.user.last_name = name_parts[1]
+                        needs_save = True
+                    
+                    if needs_save:
+                        self.user.save()
+                        
+        except Exception as e:
+            # Log the error with stack trace
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error saving lawyer: {str(e)}", exc_info=True)
+            
+            # Re-raise the exception with a more descriptive message
+            raise ValidationError(
+                f"An error occurred while saving the lawyer: {str(e)}"
+            ) from e
